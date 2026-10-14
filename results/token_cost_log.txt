@@ -1,0 +1,5 @@
+Full run over shipment_records.csv (2,940 rows) + context_notes.csv (10 notes)
+LLM calls:           0
+Total input tokens:  0
+Total output tokens: 0
+Cost:                Rs 0 / $0  (pure Python/pandas, CPU only, ~0.4 s)
