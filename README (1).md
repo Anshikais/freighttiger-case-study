@@ -13,7 +13,7 @@ python -m freighttiger.run          # writes results/output.csv
 python -m pytest tests -q           # 8 checks, should print "8 passed"
 ./reproducibility_check.sh          # 3 runs + diff (on Windows: run the python line 3 times and compare)
 ```
-Needs Python 3.10+ and pandas. Runs in under a second; no API keys, no network.
+Needs Python 3.10+ and pandas 2.2+. Runs in under a second; no API keys, no network.
 
 ## What it found
 
@@ -96,6 +96,50 @@ that is not in the notes.
 - **Reproducibility:** nothing is random. Three untouched runs give byte-identical files (same
   SHA-256, see `results/reproducibility_log.txt`).
 
+## Causes and what I improved
+
+### What caused each rise
+**Documented causes (backed by a note, cited in the CSV):**
+- *Ahmedabad-Mumbai, 2025-01-20:* festival-week surcharge from limited truck supply (N002).
+- *Chennai-Bangalore, 2025-02-24 and 03-03:* flood detours (N001).
+
+**Unexplained (no note supports a cause, so I do not name one):**
+- *Chennai-Bangalore, 03-10 and 03-17:* the flood window had ended, yet cost stayed high. Possible lingering
+  repair or backlog effects, but that is a guess, so it goes to a human.
+- *Delhi-Jaipur, Nov 11 and 18, 2024:* a sharp two-week spike (about +35%) that fully reverted by Nov 25.
+  The short, clean reversal looks like a temporary surcharge or one-off event rather than a trend.
+- *Mumbai-Pune, Jun-Dec 2025:* a slow, accelerating climb from about 3.4 (all of 2024 to Apr 2025) to 4.42 INR per
+  tonne-km in Dec 2025 (+30%). The first step up lines up with the May 2025 diesel rise (N003), but diesel hit every
+  route, and the others flattened out while Mumbai-Pune kept climbing.
+
+**What the data rules out** (`python -m analysis.segment_check`): in both cases the rise shows up in **every**
+transporter and **every** material, and average load and distance did not change. So it is not one rogue
+transporter, a change in cargo mix, or lighter loads. It points to a route-level rate change, which is the
+thing to ask the transporters about. Caveat: the Delhi-Jaipur spike is only 7 shipments, so treat its
+breakdown as indicative.
+
+### What I improved in the solution
+Built in, and each one has a test:
+- **Strict date windows.** A note justifies a week only if that week overlaps the note's dates. This is what
+  keeps Chennai-Bangalore 03-10 flagged even though a flood note exists.
+- **Scope check for nationwide notes.** Diesel (N003) can explain a rise vs own history, but not a gap vs
+  similar routes, which got the same increase. Without this, Mumbai-Pune would wrongly look justified.
+- **Magnitude check.** Mumbai-Delhi +11.6% is flagged, because N003 quotes only 5-7%.
+- **Negation handling.** Notes saying costs were unaffected, or conditions normal, are never used as reasons.
+- **Honest "unexplained" text.** It names the closest note and why it does not apply, instead of forcing a match.
+- **Deterministic by design.** No randomness, so reruns are identical.
+
+### What I would improve next
+1. **Retrieval + LLM for messy notes.** Embed notes to shortlist candidates, then use a temperature-0 LLM only
+   to extract route, dates and effect into the same structured fields; keep the rule-based verdict.
+2. **Plain-English Q&A** over `output.csv` ("why did this route get pricier in March?"), answering only from
+   its rows and cited notes.
+3. **Trend detection.** The flag rule catches spikes but is slow on creeps like Mumbai-Pune; a cumulative-drift
+   (CUSUM-style) check would flag it months earlier.
+4. **Tune thresholds with real labels** from ops reviewers instead of my judgment, and add a confidence level to each flag.
+5. **Peer groups with more than 2 routes**, since Short and Long each have only two routes, so one noisy peer moves the
+   comparison.
+
 ## Project layout
 ```
 freighttiger/
@@ -105,6 +149,7 @@ freighttiger/
   verdict.py    flag rule and grounded verdict text
   run.py        entry point, writes the output CSV
   data/         shipment_records.csv, context_notes.csv
+analysis/       segment_check.py: transporter/material breakdown behind the causes section
 tests/          eval harness (labeled + adversarial cases)
 results/        output.csv, reproducibility log, token/cost log
 ```
