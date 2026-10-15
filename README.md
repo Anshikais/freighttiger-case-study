@@ -5,7 +5,7 @@ is rising in a way that looks out of the ordinary, and says *why* in plain Engli
 what the provided notes actually say. If no note supports a reason, it says "unexplained" rather
 than guessing.
 
-## Run it (2 minutes)
+## Run 
 
 ```
 pip install -r requirements.txt
@@ -74,7 +74,7 @@ that is not in the notes.
 - N002's "festival week" is read as the single Mon-Sun week containing the note date.
 - Only candidate weeks appear in the output CSV, not all 700+ route-weeks, mirroring the sample file.
 
-## What I did not build (honest scope)
+## not build
 - **No LLM or vector database.** With 10 short notes, exact route + date-window matching is more
   reliable than embeddings and is fully deterministic. The trade-off is that it does not generalise
   to messy, long, or ambiguous notes, where retrieval and an LLM would earn their cost. The natural
@@ -83,7 +83,7 @@ that is not in the notes.
 - **No natural-language Q&A (stretch goal).**
 - Consequently the token/cost log is 0 calls, 0 tokens, Rs 0 (`results/token_cost_log.txt`).
 
-## How I convinced myself it is right
+## Right 
 - **Matches the sample file.** My numbers reproduce all three example rows in
   `sample_output_format_v2.csv` (e.g. Delhi-Jaipur 2024-11-11: 4.17, +35.5%, +21.0%).
 - **Labeled cases** (`tests/test_guardrails.py`): 10 real route-weeks with the expected verdict and
